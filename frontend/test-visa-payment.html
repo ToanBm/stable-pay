@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test VISA Payment - Buy USDT</title>
+    <script src="https://js.stripe.com/v3/" onload="console.log('Stripe.js loaded')" onerror="console.error('Failed to load Stripe.js')"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        #card-element {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            min-height: 50px;
+        }
+        
+        #card-element.StripeElement {
+            min-height: 50px;
+        }
+        
+        #card-element:focus {
+            border-color: #667eea;
+        }
+        
+        .error {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 8px;
+            display: none;
+        }
+        
+        .error.show {
+            display: block;
+        }
+        
+        .success {
+            color: #27ae60;
+            font-size: 14px;
+            margin-top: 8px;
+            display: none;
+        }
+        
+        .success.show {
+            display: block;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #555;
+        }
+        
+        .info-box strong {
+            color: #333;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .result.show {
+            display: block;
+        }
+        
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .config {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+        
+        .config input {
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💳 Buy USDT with VISA</h1>
+        <p class="subtitle">Test Payment - On-Ramp Flow</p>
+        
+        <div class="config">
+            <strong>⚙️ Configuration:</strong>
+            <div class="form-group">
+                <label>Backend API URL:</label>
+                <input type="text" id="apiUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+            </div>
+            <div class="form-group">
+                <label>Stripe Publishable Key:</label>
+                <input type="text" id="stripeKey" value="pk_test_51SZ2yNLcdcGA3J2H27Agez2LwkvUQYVPUptJgZxZipJbeRYCUuJCEvMhjfNaYTvLH9bh39sojroFtkDRQOHezwx500N37EHR9T" placeholder="pk_test_...">
+                <small style="color: #666; font-size: 12px;">Get from: https://dashboard.stripe.com/test/apikeys</small>
+            </div>
+        </div>
+        
+        <div class="info-box">
+            <strong>📝 Test Card:</strong><br>
+            Card: <code>4242 4242 4242 4242</code><br>
+            Expiry: Any future date (e.g., 12/34)<br>
+            CVC: Any 3 digits (e.g., 123)<br>
+            ZIP: Any 5 digits (e.g., 12345)
+        </div>
+        
+        <form id="payment-form">
+            <div class="form-group">
+                <label>Wallet Address (to receive USDT):</label>
+                <input type="text" id="wallet-address" value="0x0dc5d0F55072BDaC9a53888cDDDec39f66F02dCc" placeholder="0x...">
+                <div class="error" id="wallet-error"></div>
+            </div>
+            
+            <div class="form-group">
+                <label>Amount (USD):</label>
+                <input type="number" id="amount" value="10" min="1" step="0.01" placeholder="10.00">
+                <div class="error" id="amount-error"></div>
+            </div>
+            
+            <div class="form-group">
+                <label>Currency:</label>
+                <select id="currency" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
+                    <option value="usd">USD - US Dollar</option>
+                    <option value="eur">EUR - Euro</option>
+                    <option value="vnd">VND - Vietnamese Dong</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Card Details:</label>
+                <div id="card-element" style="min-height: 50px; border: 2px solid #e0e0e0; border-radius: 8px; padding: 12px; background: white;">
+                    <p style="color: #999; font-style: italic; margin: 0;">Loading card input form...</p>
+                </div>
+                <div class="error" id="card-error"></div>
+            </div>
+            
+            <button type="submit" id="submit-button">
+                <span id="button-text">Pay Now</span>
+            </button>
+            
+            <div class="result" id="result"></div>
+        </form>
+    </div>
+
+    <script>
+        // Wait for DOM to load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, initializing...');
+            
+            // Configuration
+            let stripe = null;
+            let elements = null;
+            let cardElement = null;
+            let cardComplete = false;
+            
+            // Initialize Stripe when key is provided
+            function initStripe() {
+            // Check if Stripe.js is loaded
+            if (typeof Stripe === 'undefined') {
+                console.error('Stripe.js not loaded yet');
+                alert('Stripe.js is loading. Please wait a moment and try again.');
+                return false;
+            }
+            
+            const stripeKey = document.getElementById('stripeKey').value.trim();
+            if (!stripeKey || !stripeKey.startsWith('pk_')) {
+                alert('Please enter a valid Stripe Publishable Key (pk_test_...)');
+                return false;
+            }
+            
+            try {
+                stripe = Stripe(stripeKey);
+                elements = stripe.elements();
+                cardElement = elements.create('card', {
+                    style: {
+                        base: {
+                            fontSize: '16px',
+                            color: '#32325d',
+                            '::placeholder': {
+                                color: '#aab7c4',
+                            },
+                        },
+                        invalid: {
+                            color: '#fa755a',
+                        },
+                    },
+                });
+                
+                // Check if card element container exists
+                const cardElementContainer = document.getElementById('card-element');
+                if (!cardElementContainer) {
+                    throw new Error('Card element container not found');
+                }
+                
+                // Clear any placeholder text
+                cardElementContainer.innerHTML = '';
+                
+                // Mount card element with error handling
+                try {
+                    cardElement.mount('#card-element');
+                    console.log('Card element mount() called successfully');
+                    
+                    // Verify it's mounted by checking if Stripe has rendered it
+                    setTimeout(() => {
+                        const mountedElement = cardElementContainer.querySelector('.StripeElement') || 
+                                             cardElementContainer.querySelector('iframe') ||
+                                             cardElementContainer.querySelector('input');
+                        if (mountedElement) {
+                            console.log('✅ Card element rendered successfully!', mountedElement);
+                            cardElementContainer.style.minHeight = '50px';
+                        } else {
+                            console.warn('⚠️ Card element may not have rendered properly');
+                            console.log('Card element container content:', cardElementContainer.innerHTML);
+                            console.log('Card element container children:', cardElementContainer.children.length);
+                            // Try to show what's in the container
+                            if (cardElementContainer.children.length === 0) {
+                                cardElementContainer.innerHTML = '<p style="color: orange; padding: 10px;">⚠️ Card element not rendering. Check console for errors.</p>';
+                            }
+                        }
+                    }, 1000);
+                } catch (mountError) {
+                    console.error('Error mounting card element:', mountError);
+                    cardElementContainer.innerHTML = `<p style="color: red; padding: 10px;">❌ Error mounting card: ${mountError.message}</p>`;
+                    throw mountError;
+                }
+            } catch (error) {
+                console.error('Error initializing Stripe:', error);
+                alert('Failed to initialize Stripe. Please check console for details.');
+                return false;
+            }
+            
+            cardElement.on('change', (event) => {
+                const displayError = document.getElementById('card-error');
+                if (event.error) {
+                    displayError.textContent = event.error.message;
+                    displayError.classList.add('show');
+                } else {
+                    displayError.textContent = '';
+                    displayError.classList.remove('show');
+                }
+                console.log('Card element change:', {
+                    complete: event.complete,
+                    empty: event.empty,
+                    error: event.error?.message,
+                });
+            });
+            
+            // Track card completion state
+            cardElement.on('change', (event) => {
+                cardComplete = event.complete;
+                console.log('Card completion state:', cardComplete);
+            });
+            
+            return true;
+        }
+        
+            // Handle form submission
+            document.getElementById('payment-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                console.log('Form submitted');
+                
+                const submitButton = document.getElementById('submit-button');
+                const buttonText = document.getElementById('button-text');
+                const resultDiv = document.getElementById('result');
+                
+                // Validate inputs
+                const walletAddress = document.getElementById('wallet-address').value.trim();
+                const amount = document.getElementById('amount').value;
+                const currency = document.getElementById('currency').value;
+                const apiUrl = document.getElementById('apiUrl').value.trim();
+                
+                console.log('Form data:', { walletAddress, amount, currency, apiUrl });
+                
+                if (!walletAddress || !walletAddress.startsWith('0x') || walletAddress.length !== 42) {
+                    showError('Please enter a valid Ethereum wallet address (0x...)');
+                    return;
+                }
+                
+                if (!amount || parseFloat(amount) <= 0) {
+                    showError('Please enter a valid amount');
+                    return;
+                }
+                
+                // Check Stripe key
+                const stripeKey = document.getElementById('stripeKey').value.trim();
+                if (!stripeKey || !stripeKey.startsWith('pk_')) {
+                    showError('Please enter a valid Stripe Publishable Key (pk_test_...)');
+                    return;
+                }
+                
+                // Initialize Stripe if not already done
+                if (!stripe) {
+                    console.log('Initializing Stripe...');
+                    if (!initStripe()) {
+                        showError('Failed to initialize Stripe. Please check your Stripe key.');
+                        return;
+                    }
+                }
+            
+                // Disable button
+                submitButton.disabled = true;
+                buttonText.innerHTML = '<span class="loading"></span>Processing...';
+                resultDiv.classList.remove('show', 'success', 'error');
+                
+                try {
+                    // Step 1: Create Payment Intent
+                    console.log('Creating payment intent...');
+                    console.log('API URL:', `${apiUrl}/api/payment/create-intent`);
+                    const response = await fetch(`${apiUrl}/api/payment/create-intent`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        amount: amount,
+                        currency: currency,
+                        walletAddress: walletAddress,
+                    }),
+                });
+                
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        let errorMessage = 'Failed to create payment intent';
+                        try {
+                            const errorJson = JSON.parse(errorText);
+                            errorMessage = errorJson.error || errorMessage;
+                        } catch (e) {
+                            errorMessage = errorText || errorMessage;
+                        }
+                        console.error('API Error:', errorMessage);
+                        throw new Error(errorMessage);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('Payment Intent created:', data);
+                    
+                    if (!data.clientSecret) {
+                        throw new Error('No client secret returned from server');
+                    }
+                    
+                    // Step 2: Validate card element and ensure it's complete
+                    console.log('Validating card element...');
+                    console.log('Client Secret:', data.clientSecret);
+                    console.log('Card Element mounted:', cardElement ? 'Yes' : 'No');
+                    console.log('Card complete:', cardComplete);
+                    
+                    if (!cardElement) {
+                        throw new Error('Card element not initialized. Please refresh the page.');
+                    }
+                    
+                    // Check if card is complete - REQUIRED before proceeding
+                    if (!cardComplete) {
+                        const cardErrorDiv = document.getElementById('card-error');
+                        if (cardErrorDiv) {
+                            cardErrorDiv.textContent = 'Please complete all card details before submitting';
+                            cardErrorDiv.classList.add('show');
+                        }
+                        throw new Error('Please complete all card details (card number, expiry, CVC) before submitting');
+                    }
+                    
+                    // Step 3: Confirm payment directly with card element
+                    // This is the recommended Stripe approach - confirmCardPayment handles payment method creation internally
+                    console.log('Confirming payment with Stripe (using card element directly)...');
+                    const confirmPromise = stripe.confirmCardPayment(
+                        data.clientSecret,
+                        {
+                            payment_method: {
+                                card: cardElement,
+                                billing_details: {
+                                    name: 'Test User',
+                                },
+                            },
+                        }
+                    );
+                    
+                    const confirmTimeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('Payment confirmation timeout after 30 seconds')), 30000);
+                    });
+                    
+                    const result = await Promise.race([
+                        confirmPromise,
+                        confirmTimeoutPromise,
+                    ]);
+                    const { error: confirmError, paymentIntent } = result;
+                    
+                    console.log('Stripe confirm result:', { confirmError, paymentIntent });
+                    
+                    if (confirmError) {
+                        console.error('Stripe confirmation error:', confirmError);
+                        throw new Error(confirmError.message || 'Payment confirmation failed');
+                    }
+                    
+                    if (!paymentIntent) {
+                        throw new Error('No payment intent returned from Stripe');
+                    }
+                    
+                    console.log('Payment Intent result:', paymentIntent);
+                    console.log('Payment Intent status:', paymentIntent.status);
+                    
+                    // Handle different payment statuses
+                    if (paymentIntent.status === 'succeeded') {
+                        showSuccess(`✅ Payment successful!<br>
+                            Payment Intent ID: ${paymentIntent.id}<br>
+                            Amount: ${data.amount} ${data.currency.toUpperCase()}<br>
+                            USDT: ${data.amountUSDT} USDT<br>
+                            Wallet: ${walletAddress}<br><br>
+                            <strong>Note:</strong> USDT will be transferred to your wallet when webhook is received.`);
+                        
+                        // Check payment status after a delay
+                        setTimeout(async () => {
+                            try {
+                                console.log('Checking payment status...');
+                                const statusResponse = await fetch(`${apiUrl}/api/payment/status/${paymentIntent.id}`);
+                                if (statusResponse.ok) {
+                                    const statusData = await statusResponse.json();
+                                    console.log('Payment status from API:', statusData);
+                                    if (statusData.status === 'completed' && statusData.tx_hash) {
+                                        showSuccess(`✅ USDT transferred!<br>
+                                            Transaction Hash: ${statusData.tx_hash}<br>
+                                            Block: ${statusData.block_number}`);
+                                    } else {
+                                        console.log('Payment still processing, status:', statusData.status);
+                                    }
+                                }
+                            } catch (err) {
+                                console.error('Error checking status:', err);
+                            }
+                        }, 3000);
+                    } else if (paymentIntent.status === 'processing') {
+                        showSuccess(`⏳ Payment is processing...<br>
+                            Payment Intent ID: ${paymentIntent.id}<br>
+                            Amount: ${data.amount} ${data.currency.toUpperCase()}<br>
+                            <small>Please wait while we process your payment.</small>`);
+                        
+                        // Poll for status updates
+                        let attempts = 0;
+                        const maxAttempts = 10;
+                        const pollInterval = setInterval(async () => {
+                            attempts++;
+                            try {
+                                const statusResponse = await fetch(`${apiUrl}/api/payment/status/${paymentIntent.id}`);
+                                if (statusResponse.ok) {
+                                    const statusData = await statusResponse.json();
+                                    console.log(`Poll attempt ${attempts}:`, statusData);
+                                    if (statusData.status === 'completed') {
+                                        clearInterval(pollInterval);
+                                        showSuccess(`✅ Payment completed!<br>
+                                            Payment Intent ID: ${paymentIntent.id}<br>
+                                            Amount: ${data.amount} ${data.currency.toUpperCase()}<br>
+                                            USDT: ${data.amountUSDT} USDT<br>
+                                            ${statusData.tx_hash ? `Transaction Hash: ${statusData.tx_hash}` : ''}`);
+                                    } else if (statusData.status === 'failed') {
+                                        clearInterval(pollInterval);
+                                        showError(`Payment failed: ${statusData.error || 'Unknown error'}`);
+                                    }
+                                }
+                            } catch (err) {
+                                console.error('Error polling status:', err);
+                            }
+                            
+                            if (attempts >= maxAttempts) {
+                                clearInterval(pollInterval);
+                                console.log('Max polling attempts reached');
+                            }
+                        }, 2000);
+                    } else if (paymentIntent.status === 'requires_action') {
+                        showError(`Payment requires additional action: ${paymentIntent.next_action?.type || 'Unknown'}`);
+                    } else {
+                        showError(`Payment status: ${paymentIntent.status}. Please check the console for details.`);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showError(error.message || 'Payment failed. Please try again.');
+                } finally {
+                    submitButton.disabled = false;
+                    buttonText.textContent = 'Pay Now';
+                }
+            });
+        
+        function showError(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result error show';
+            resultDiv.innerHTML = `<strong>❌ Error:</strong><br>${message}`;
+        }
+        
+        function showSuccess(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result success show';
+            resultDiv.innerHTML = `<strong>✅ Success:</strong><br>${message}`;
+        }
+        
+            // Initialize Stripe when key is entered
+            document.getElementById('stripeKey').addEventListener('blur', () => {
+                const key = document.getElementById('stripeKey').value.trim();
+                if (key && key.startsWith('pk_')) {
+                    console.log('Stripe key entered, initializing...');
+                    initStripe();
+                } else {
+                    // Clear card element if invalid key
+                    const cardElementContainer = document.getElementById('card-element');
+                    if (cardElementContainer) {
+                        cardElementContainer.innerHTML = '<p style="color: #999; padding: 10px; font-style: italic;">Please enter a valid Stripe Publishable Key</p>';
+                    }
+                }
+            });
+            
+            // Auto-initialize Stripe if key is already set
+            // Wait for Stripe.js to be fully loaded
+            function waitForStripe(callback, maxAttempts = 30) {
+                console.log(`Checking Stripe.js... (attempt ${31 - maxAttempts}/30)`);
+                console.log('typeof Stripe:', typeof Stripe);
+                console.log('window.Stripe:', typeof window.Stripe);
+                
+                if (typeof Stripe !== 'undefined' && typeof window.Stripe !== 'undefined') {
+                    console.log('✅ Stripe.js loaded successfully');
+                    callback();
+                } else if (maxAttempts > 0) {
+                    setTimeout(() => waitForStripe(callback, maxAttempts - 1), 200);
+                } else {
+                    console.error('❌ Stripe.js failed to load after 6 seconds');
+                    console.log('Available globals:', Object.keys(window).filter(k => k.toLowerCase().includes('stripe')));
+                    const cardElementContainer = document.getElementById('card-element');
+                    if (cardElementContainer) {
+                        cardElementContainer.innerHTML = '<p style="color: red; padding: 10px;">⚠️ Stripe.js failed to load. Please check:<br>1. Internet connection<br>2. Browser console for errors<br>3. Try refreshing the page</p>';
+                    }
+                }
+            }
+            
+            const stripeKeyInput = document.getElementById('stripeKey');
+            if (stripeKeyInput && stripeKeyInput.value.trim()) {
+                console.log('Waiting for Stripe.js to load...');
+                // Show loading indicator
+                const cardElementContainer = document.getElementById('card-element');
+                if (cardElementContainer) {
+                    cardElementContainer.innerHTML = '<p style="color: #666; padding: 10px;">Loading card input form...</p>';
+                }
+                
+                waitForStripe(() => {
+                    console.log('Auto-initializing Stripe with pre-filled key...');
+                    const result = initStripe();
+                    if (!result) {
+                        // If init failed, show error
+                        const cardElementContainer = document.getElementById('card-element');
+                        if (cardElementContainer) {
+                            cardElementContainer.innerHTML = '<p style="color: red; padding: 10px;">⚠️ Failed to initialize Stripe. Please check the console.</p>';
+                        }
+                    }
+                });
+            } else {
+                // Show placeholder if no key
+                const cardElementContainer = document.getElementById('card-element');
+                if (cardElementContainer) {
+                    cardElementContainer.innerHTML = '<p style="color: #999; padding: 10px; font-style: italic;">Please enter Stripe Publishable Key above to enable card input</p>';
+                }
+            }
+            
+            console.log('Event listeners attached');
+        });
+    </script>
+</body>
+</html>
+
