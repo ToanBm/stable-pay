@@ -38,6 +38,15 @@ export async function createPaymentIntentHandler(req: Request, res: Response) {
 
     const amountUSDT = parseFloat(amount) * exchangeRate;
 
+    // Validate maximum amount: 5 USDT limit
+    if (amountUSDT > 5) {
+      return res.status(400).json({
+        error: 'Maximum purchase limit is 5 USDT',
+        maxAmount: '5',
+        requested: amountUSDT.toFixed(6),
+      });
+    }
+
     // Check offramp wallet balance
     try {
       const offrampBalance = await getOfframpBalance();
@@ -134,6 +143,9 @@ export async function getPaymentStatus(req: Request, res: Response) {
       // If Stripe API fails, return database status
       console.warn('Failed to get Stripe payment intent:', error);
     }
+
+    // Log payment response for debugging
+    console.log(`[Payment Status] Payment ${payment.id} - Status: ${payment.status}, TX Hash: ${payment.tx_hash || 'N/A'}`);
 
     res.json(payment);
   } catch (error: any) {

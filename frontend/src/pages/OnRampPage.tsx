@@ -95,6 +95,13 @@ const OnRampPage: React.FC = () => {
       return;
     }
 
+    // Check maximum amount (5 USDT)
+    const amountValue = parseFloat(amount);
+    if (amountValue > 5) {
+      toast.error('Maximum purchase limit is 5 USDT');
+      return;
+    }
+
     if (!walletAddress || !isValidAddress(walletAddress)) {
       toast.error('Please enter a valid wallet address');
       return;
@@ -126,11 +133,6 @@ const OnRampPage: React.FC = () => {
         {
           payment_method: {
             card: cardElement,
-            billing_details: {
-              address: {
-                postal_code: '12345', // Default postal code for test cards
-              },
-            },
           },
         }
       );
@@ -232,7 +234,23 @@ const OnRampPage: React.FC = () => {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid grid-cols-3 gap-4">
-                <Input label="Amount" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="100.00" required />
+                <Input 
+                  label="Amount (Max 5)" 
+                  type="number" 
+                  step="0.01" 
+                  max="5"
+                  min="0"
+                  value={amount} 
+                  onChange={e => {
+                    const value = e.target.value;
+                    // Only allow values <= 5
+                    if (value === '' || (parseFloat(value) >= 0 && parseFloat(value) <= 5)) {
+                      setAmount(value);
+                    }
+                  }} 
+                  placeholder="5.00" 
+                  required 
+                />
                 <div>
                    <label className="block text-xs font-medium text-white mb-1.5 uppercase tracking-wide">Currency</label>
               <select
@@ -266,7 +284,7 @@ const OnRampPage: React.FC = () => {
                 <label className="block text-xs font-medium text-white mb-1.5 uppercase tracking-wide">Card Details</label>
                 <div className="px-3 py-3 bg-[#002315] border border-white/10 rounded-[4px]">
                   <CardElement options={{
-                    hidePostalCode: false, // Hiển thị postal code field
+                    hidePostalCode: true, // Ẩn postal code field
                     style: {
                       base: {
                         fontSize: '14px',
@@ -278,7 +296,7 @@ const OnRampPage: React.FC = () => {
                   }} />
                 </div>
                 <p className="mt-1.5 text-xs text-white/60">
-                  Test card: 4242 4242 4242 4242 | Expiry: 12/34 | CVC: 123 | ZIP: 12345
+                  Test card: 4242 4242 4242 4242 | Expiry: 12/34 | CVC: 123
                 </p>
               </div>
 

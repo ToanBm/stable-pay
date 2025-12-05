@@ -59,10 +59,21 @@ export async function createPaymentIntent(
 export async function getPaymentStatus(
   paymentIntentId: string
 ): Promise<PaymentStatusResponse> {
-  const response = await apiClient.get<PaymentStatusResponse>(
+  const response = await apiClient.get<any>(
     `/api/payment/status/${paymentIntentId}`
   );
-  return response.data;
+  // Map backend response (snake_case) to frontend format (camelCase)
+  return {
+    paymentIntentId: response.data.payment_intent_id || response.data.paymentIntentId,
+    status: response.data.status === 'completed' ? 'succeeded' : response.data.status,
+    amountFiat: response.data.amount_fiat || response.data.amountFiat,
+    amountUSDT: response.data.amount_usdt || response.data.amountUSDT,
+    currency: response.data.fiat_currency || response.data.currency,
+    walletAddress: response.data.wallet_address || response.data.walletAddress,
+    txHash: response.data.tx_hash || response.data.txHash, // Map tx_hash to txHash
+    blockNumber: response.data.block_number || response.data.blockNumber,
+    error: response.data.error_message || response.data.error,
+  };
 }
 
 // Get payment history
@@ -71,13 +82,24 @@ export async function getPaymentHistory(
   page = 1,
   limit = 10
 ): Promise<PaymentHistoryItem[]> {
-  const response = await apiClient.get<PaymentHistoryItem[]>(
+  const response = await apiClient.get<{ payments: any[]; total: number }>(
     `/api/payment/history/${walletAddress}`,
     {
       params: { page, limit },
     }
   );
-  return response.data;
+  // Map backend response (snake_case) to frontend format (camelCase)
+  return response.data.payments.map((payment: any) => ({
+    id: payment.id,
+    paymentIntentId: payment.payment_intent_id || payment.paymentIntentId,
+    walletAddress: payment.wallet_address || payment.walletAddress,
+    amountFiat: payment.amount_fiat || payment.amountFiat,
+    amountUSDT: payment.amount_usdt || payment.amountUSDT,
+    currency: payment.fiat_currency || payment.currency,
+    status: payment.status,
+    txHash: payment.tx_hash || payment.txHash, // Map tx_hash to txHash
+    createdAt: payment.created_at || payment.createdAt,
+  }));
 }
 
 // Get offramp balance

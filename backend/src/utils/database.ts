@@ -11,10 +11,21 @@ export function initializeDatabase() {
   
   if (dbUrl.startsWith('sqlite://')) {
     // SQLite - execute SQLite-compatible SQL file
-    const sqlFile = readFileSync(
-      path.join(__dirname, '../config/database.sqlite.sql'),
-      'utf-8'
-    );
+    // Try to find file from project root (for production) or src (for development)
+    const sqlitePath = path.join(process.cwd(), 'src/config/database.sqlite.sql');
+    const sqlitePathDist = path.join(process.cwd(), 'dist/config/database.sqlite.sql');
+    const sqlitePathAlt = path.join(__dirname, '../config/database.sqlite.sql');
+    
+    let sqlFile: string;
+    try {
+      sqlFile = readFileSync(sqlitePath, 'utf-8');
+    } catch {
+      try {
+        sqlFile = readFileSync(sqlitePathDist, 'utf-8');
+      } catch {
+        sqlFile = readFileSync(sqlitePathAlt, 'utf-8');
+      }
+    }
     
     try {
       // Execute entire SQL file at once
@@ -32,10 +43,20 @@ export function initializeDatabase() {
     }
   } else {
     // PostgreSQL - use pg client
-    const sqlFile = readFileSync(
-      path.join(__dirname, '../config/database.sql'),
-      'utf-8'
-    );
+    const sqlPath = path.join(process.cwd(), 'src/config/database.sql');
+    const sqlPathDist = path.join(process.cwd(), 'dist/config/database.sql');
+    const sqlPathAlt = path.join(__dirname, '../config/database.sql');
+    
+    let sqlFile: string;
+    try {
+      sqlFile = readFileSync(sqlPath, 'utf-8');
+    } catch {
+      try {
+        sqlFile = readFileSync(sqlPathDist, 'utf-8');
+      } catch {
+        sqlFile = readFileSync(sqlPathAlt, 'utf-8');
+      }
+    }
     
     // For PostgreSQL, you would run this manually or use migrations
     console.log('PostgreSQL: Run database.sql manually or use migrations');

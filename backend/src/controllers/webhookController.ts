@@ -188,23 +188,50 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     // Convert amount to string if needed (database might return number)
     const amountUSDT = typeof payment.amount_usdt === 'string' 
       ? payment.amount_usdt 
-      : payment.amount_usdt.toString();
-    const tx = await transferUSDTFromOfframp(walletAddress, amountUSDT);
+      : String(payment.amount_usdt);
+    
+    console.log(`[Webhook] Transferring ${amountUSDT} USDT to ${walletAddress}...`);
+    
+    let tx;
+    try {
+      tx = await transferUSDTFromOfframp(walletAddress, amountUSDT);
+      console.log(`[Webhook] Transaction created: ${tx.hash}`);
+    } catch (error: any) {
+      console.error(`[Webhook] Failed to create transaction:`, error);
+      throw new Error(`Failed to create USDT transfer transaction: ${error.message}`);
+    }
 
     // Wait for transaction confirmation
-    const receipt = await waitForTransaction(tx.hash);
+    console.log(`[Webhook] Waiting for transaction confirmation: ${tx.hash}`);
+    let receipt;
+    try {
+      receipt = await waitForTransaction(tx.hash);
+      if (receipt) {
+        console.log(`[Webhook] Transaction receipt received:`, {
+          hash: receipt.hash,
+          blockNumber: receipt.blockNumber,
+          status: receipt.status,
+        });
+      }
+    } catch (error: any) {
+      console.error(`[Webhook] Failed to wait for transaction:`, error);
+      throw new Error(`Failed to confirm transaction: ${error.message}`);
+    }
 
     if (!receipt || receipt.status !== 1) {
-      throw new Error('Transaction failed');
+      console.error(`[Webhook] Transaction failed on-chain. Status: ${receipt?.status}`);
+      throw new Error(`Transaction failed on-chain. Status: ${receipt?.status}`);
     }
 
     // Update payment with transaction hash
+    console.log(`[Webhook] Updating payment ${payment.id} with transaction hash: ${receipt.hash}`);
     await updatePayment(payment.id!, {
       tx_hash: receipt.hash,
       block_number: receipt.blockNumber,
       status: 'completed',
       completed_at: new Date(),
     });
+    console.log(`[Webhook] Payment ${payment.id} updated successfully`);
   } catch (error: any) {
     console.error('Error handling payment_intent.succeeded:', error);
 
