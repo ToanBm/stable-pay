@@ -21,7 +21,7 @@ export const STRIPE_PUBLISHABLE_KEY =
 export const STABLE_RPC_URL = 'https://rpc.testnet.stable.xyz';
 export const USDT_CONTRACT_ADDRESS = '0x0000000000000000000000000000000000001000';
 export const OFF_RAMP_ADDRESS = '0x520A3B99F0aB4091230303DD83805987D0aD471a';
-export const BLOCK_EXPLORER_URL = 'https://testnet-explorer.stable.xyz';
+export const BLOCK_EXPLORER_URL = 'https://testnet.stablescan.xyz';
 
 // Chain ID
 export const CHAIN_ID = '0x899'; // 2201 in hex
